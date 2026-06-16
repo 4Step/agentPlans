@@ -1,0 +1,70 @@
+# agentPlans control file (key = value). Lines starting with # are comments.
+# Runs the full pipeline: stage ldt (script 2) then stage eltod (script 3).
+
+# --- scenario / run ---
+catalog_dir   = C:/TSM_NextGen_v6
+scenario_dir  = C:/TSM_NextGen_v6/Base/TSMv6_2024
+year          = 2024
+feedback_loop = 1
+seed          = 1
+
+# --- temporal resolution ---
+# Native bin of each demand source, and the bin of the trip-list output.
+# The pipeline times daily sources (LDT, trucks) to 15-min using the ToD share
+# table, splits the 30-min SDT trips to 15-min, then collapses the output list
+# `period` to output_resolution. output/sdt accept 15 or 30; ldt/truck = daily.
+output_resolution     = 30
+sdt_input_resolution  = 30
+ldt_input_resolution  = daily
+truck_input_resolution = daily
+
+# --- xlsx lookups converted to CSV (see docs/CSV_INPUTS.md) ---
+external_auto_shares = C:/TSM_NextGen_v6/Inputs/external_counts/external_auto_shares.csv
+airport_shares       = C:/TSM_NextGen_v6/Inputs/external_counts/airport_shares.csv
+canaveral_cruise     = C:/TSM_NextGen_v6/Inputs/external_counts/canaveral_cruise.csv
+tod_distributions    = C:/TSM_NextGen_v6/Inputs/tod/tod_distributions.csv
+ga_al_destinations   = C:/TSM_NextGen_v6/Inputs/external_counts/ga_al_ldt_destinations.csv
+cbm_external_lookup  = C:/TSM_NextGen_v6/Inputs/external_counts/cbm_external_lookup.csv
+
+# --- already-CSV inputs ---
+taz_dma       = C:/TSM_NextGen_v6/Inputs/zone_shapeFiles/Florida_Zones_appended_STL_TSMv4.csv
+distance_skim = C:/TSM_NextGen_v6/Inputs/distance_skim/Skim_distbased.csv
+truck_odme    = C:/TSM_NextGen_v6/Inputs/trk_ODME/TSMv5_Truck_ODME_TT.csv
+sdt_syn_hh    = C:/TSM_NextGen_v6/Base/TSMv6_2024/synthetic_households_24.csv
+fl_ldt_tours  = C:/TSM_NextGen_v6/Base/TSMv6_2024/FL_LD_tour_out.csv
+os_ldt_tours  = C:/TSM_NextGen_v6/Base/TSMv6_2024/OS_LD_tour_out.csv
+# sdt_res_trips = (default: scenario_dir/trips_<feedback_loop>.csv)
+# sdt_vis_trips = (default: scenario_dir/visitorTrips.csv)
+
+# --- output (default: scenario_dir/ELTOD_tt_List_hourly.csv.gz) ---
+# trip_table_out = C:/TSM_NextGen_v6/Base/TSMv6_2024/ELTOD_tt_List_hourly.csv.gz
+
+# --- stage ldt (script 2) toggles ---
+apply_originState_based_externals = true
+use_cbm_external_lookup = true
+separate_res_markets    = true
+exclude_non_Interstate  = false
+remove_NorthFL_res_trips = false
+fineCalib               = false
+compute_LDT_TT          = true
+
+# --- stage eltod (script 3) toggles ---
+track_sdt_grt50M       = false
+track_AirTours         = true
+appendNewMkt           = false
+aggregate_purp         = false
+telework               = false
+LimitCounties          = false
+write_HourClock_format = true
+use_hour               = true
+doTransims             = false
+
+# --- VOT thresholds ---
+vot_ldt_low  = 6.51
+vot_ldt_high = 11.68
+vot_sdt_low  = 12.81
+vot_sdt_high = 22.83
+
+# --- trucks ---
+truck_base_year = 23
+trk_axle_scale  = 3.5

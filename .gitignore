@@ -1,0 +1,12 @@
+# build output
+build/
+
+# compiled artifacts
+*.exe
+*.obj
+*.lib
+*.o
+*.a
+
+# generated trip-list / OD outputs from smoke tests
+/test/scen/ELTOD_*

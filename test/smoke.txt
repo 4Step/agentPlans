@@ -1,0 +1,21 @@
+catalog_dir   = C:/Projects/agentPlans/test
+scenario_dir  = C:/Projects/agentPlans/test/scen
+year          = 2024
+feedback_loop = 1
+seed          = 1
+
+external_auto_shares = C:/Projects/agentPlans/test/inputs/external_auto_shares.csv
+airport_shares       = C:/Projects/agentPlans/test/inputs/airport_shares.csv
+canaveral_cruise     = C:/Projects/agentPlans/test/inputs/canaveral_cruise.csv
+tod_distributions    = C:/Projects/agentPlans/test/inputs/tod_distributions.csv
+ga_al_destinations   = C:/Projects/agentPlans/test/inputs/ga_al_destinations.csv
+cbm_external_lookup  = C:/Projects/agentPlans/test/inputs/cbm_external_lookup.csv
+
+taz_dma       = C:/Projects/agentPlans/test/inputs/taz_dma.csv
+distance_skim = C:/Projects/agentPlans/test/inputs/distance_skim.csv
+truck_odme    = C:/Projects/agentPlans/test/inputs/truck_odme.csv
+sdt_syn_hh    = C:/Projects/agentPlans/test/inputs/syn_hh.csv
+fl_ldt_tours  = C:/Projects/agentPlans/test/scen/FL_LD_tour_out.csv
+os_ldt_tours  = C:/Projects/agentPlans/test/scen/OS_LD_tour_out.csv
+
+track_AirTours = true
