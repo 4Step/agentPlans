@@ -55,6 +55,7 @@ Settings Settings::load(const std::string& control_file) {
     auto I = [&](const char* k, int& dst) { auto it = kv.find(k); if (it != kv.end()) dst = std::atoi(it->second.c_str()); };
     auto D = [&](const char* k, double& dst) { auto it = kv.find(k); if (it != kv.end()) dst = std::atof(it->second.c_str()); };
     auto U = [&](const char* k, uint64_t& dst) { auto it = kv.find(k); if (it != kv.end()) dst = std::strtoull(it->second.c_str(), nullptr, 10); };
+    auto LL = [&](const char* k, long long& dst) { auto it = kv.find(k); if (it != kv.end()) dst = std::strtoll(it->second.c_str(), nullptr, 10); };
 
     Settings s;
     S("catalog_dir", s.catalog_dir);
@@ -92,6 +93,14 @@ Settings Settings::load(const std::string& control_file) {
     S("sdt_res_trips", s.sdt_res_trips);
     S("sdt_vis_trips", s.sdt_vis_trips);
     S("trip_table_out", s.trip_table_out);
+
+    S("ldt_external_targets", s.ldt_external_targets);
+    S("external_base_counts", s.external_base_counts);
+    I("external_base_year", s.external_base_year);
+    B("apply_external_targets", s.apply_external_targets);
+    LL("ext_station_i10", s.ext_station_i10);
+    LL("ext_station_i75", s.ext_station_i75);
+    LL("ext_station_i95", s.ext_station_i95);
 
     B("apply_originState_based_externals", s.apply_originState_based_externals);
     B("use_cbm_external_lookup", s.use_cbm_external_lookup);

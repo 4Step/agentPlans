@@ -39,6 +39,21 @@ os_ldt_tours  = C:/TSM_NextGen_v6/Base/TSMv6_2024/OS_LD_tour_out.csv
 # --- output (default: scenario_dir/ELTOD_tt_List_hourly.csv.gz) ---
 # trip_table_out = C:/TSM_NextGen_v6/Base/TSMv6_2024/ELTOD_tt_List_hourly.csv.gz
 
+# --- external-station target calibration ---
+# GUI-produced file: interstate,ext_zone_id,base_count_<yy>,future_target_or_growth
+# (future col is either an absolute count or a growth rate like "1.2%").
+# Scales OD trips serving each ext_zone_id to: target / modeled.
+apply_external_targets = true
+ldt_external_targets   = C:/TSM_NextGen_v6/Base/TSMv6_2024/ldt_external_targets.csv
+external_base_year     = 2024
+# external_base_counts = C:/TSM_NextGen_v6/config/external/base_year_counts.csv  (optional override)
+
+# External-station TAZ ids used for LDT origin-state assignment.
+# MUST match the ext_zone_id values in ldt_external_targets.csv.
+ext_station_i10 = 11504
+ext_station_i75 = 11548
+ext_station_i95 = 11560
+
 # --- stage ldt (script 2) toggles ---
 apply_originState_based_externals = true
 use_cbm_external_lookup = true

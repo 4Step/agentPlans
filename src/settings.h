@@ -46,6 +46,22 @@ struct Settings {
     std::string sdt_res_trips;        // trips_<loop>.csv  (override; else derived)
     std::string sdt_vis_trips;        // visitorTrips.csv  (override; else derived)
 
+    // External-station target calibration (GUI-produced ldt_external_targets.csv).
+    // Scales all OD trips serving each external zone to a target volume:
+    // scale = target / modeled. target is either an absolute count or a growth
+    // rate (e.g. "1.2%") applied linearly to a base-year count over
+    // (year - external_base_year), matching the model's annual-growth convention.
+    std::string ldt_external_targets; // default: scenario_dir/ldt_external_targets.csv
+    std::string external_base_counts; // optional base-count override (plugin config)
+    int external_base_year = 2024;
+    bool apply_external_targets = true;
+
+    // External-station TAZ ids used for LDT origin-state assignment. Keep these
+    // aligned with the ext_zone_id values in ldt_external_targets.csv.
+    long long ext_station_i10 = 11504;
+    long long ext_station_i75 = 11548;
+    long long ext_station_i95 = 11560;
+
     // --- outputs (override; else derived from scenario_dir) ---
     std::string trip_table_out;       // ELTOD_tt_List_hourly.csv.gz (Hydra list)
 

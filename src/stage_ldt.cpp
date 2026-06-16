@@ -147,8 +147,9 @@ std::vector<LdtTrip> run_stage_ldt(const Settings& s, const Lookups& lk, Rng& rn
     for (auto& t : tours) {
         if (t.trMode == 1 && t.type == "EI") {
             if (s.apply_originState_based_externals) {
-                t.entry_ext = kStatesI10.count(t.trOState) ? 11504
-                            : kStatesI75.count(t.trOState) ? 11548 : 11560;
+                t.entry_ext = kStatesI10.count(t.trOState) ? s.ext_station_i10
+                            : kStatesI75.count(t.trOState) ? s.ext_station_i75
+                                                           : s.ext_station_i95;
             } else {
                 t.entry_ext = ext0.values[rng.draw(ext0_disc)];
             }

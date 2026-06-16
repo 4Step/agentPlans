@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -17,18 +19,10 @@ namespace ap {
 
 namespace {
 
-// External-station calibration factors (2023 count-to-volume).
-constexpr long long I95 = 11560, I75 = 11548, I10 = 11504;
-constexpr double I95_SCALE = 0.8951645, I75_SCALE = 0.7947358, I10_SCALE = 1.089312;
 constexpr long long MIN_HHID = 15000000, MIN_TRK_HHID = 13000000;
 
-double ext_scale(long long o, long long d) {
-    double f = 1.0;
-    if (o == I95 || d == I95) f *= I95_SCALE;
-    if (o == I75 || d == I75) f *= I75_SCALE;
-    if (o == I10 || d == I10) f *= I10_SCALE;
-    return f;
-}
+// External-station scale: factor applied to OD trips that touch an external zone.
+using ScaleFn = std::function<double(long long, long long)>;
 
 // 15-min segment (1..96) -> clock hour (1..24, 24 = midnight) as in R.
 int hour_from_seg(int seg) { int h = (seg * 15) / 60; return h == 0 ? 24 : h; }
@@ -50,10 +44,10 @@ struct ODTable {
         cells[{hour, o, d}][seg] += w;
         segments.insert(seg);
     }
-    void calibrate_externals() {
+    void apply_scale(const ScaleFn& factor) {
         for (auto& kv : cells) {
             long long o = std::get<1>(kv.first), d = std::get<2>(kv.first);
-            double f = ext_scale(o, d);
+            double f = factor(o, d);
             if (f != 1.0) for (auto& sc : kv.second) sc.second *= f;
         }
     }
@@ -91,6 +85,51 @@ std::string vot_class(double v, double lo, double hi, const char* base) {
 
 // Read an SDT trip list (resident or visitor) and emit list rows + OD entries.
 struct SdtCols { int oTaz, dTaz, period, vot, mode, exp, dPurp, oPurp, hh, per, tour, trip; };
+
+// One external-station target row from ldt_external_targets.csv.
+struct ExtTarget {
+    double base_count = 0;   // base-year count (for growth-rate specs)
+    bool has_base = false;
+    std::string spec;        // absolute count, or growth rate like "1.2%"
+};
+
+bool file_exists(const std::string& p) { std::ifstream f(p); return f.good(); }
+
+std::string trim_ws(std::string s) {
+    while (!s.empty() && std::isspace((unsigned char)s.front())) s.erase(s.begin());
+    while (!s.empty() && std::isspace((unsigned char)s.back())) s.pop_back();
+    return s;
+}
+
+// Load the GUI external-targets file: ext_zone_id -> {base_count, spec}.
+// base-count column is matched by prefix "base_count" (e.g. base_count_2024).
+std::unordered_map<long long, ExtTarget> load_ext_targets(const std::string& path) {
+    CsvTable t = load_csv(path);
+    int cZone = t.require("ext_zone_id", path);
+    int cSpec = t.require("future_target_or_growth", path);
+    int cBase = -1;
+    for (int i = 0; i < (int)t.header.names.size(); ++i)
+        if (t.header.names[i].rfind("base_count", 0) == 0) { cBase = i; break; }
+    std::unordered_map<long long, ExtTarget> m;
+    for (size_t r = 0; r < t.size(); ++r) {
+        ExtTarget e;
+        if (cBase >= 0) { e.base_count = t.num(r, cBase); e.has_base = true; }
+        e.spec = trim_ws(t.at(r, cSpec));
+        m[t.ll(r, cZone)] = e;
+    }
+    return m;
+}
+
+// Resolve a target volume: absolute count, or base*(1 + rate/100 * years) for a
+// growth-rate spec (linear annual growth, the model's convention).
+double resolve_target(const ExtTarget& e, int year, int base_year) {
+    if (!e.spec.empty() && e.spec.back() == '%') {
+        double rate = std::atof(e.spec.substr(0, e.spec.size() - 1).c_str());
+        int years = year - base_year;
+        return e.base_count * (1.0 + rate / 100.0 * years);
+    }
+    return std::atof(e.spec.c_str());
+}
 
 } // namespace
 
@@ -293,11 +332,53 @@ void run_stage_eltod(const Settings& s, const Lookups& lk, Rng& rng,
         std::printf("[eltod] processed trucks (scale=%.4f)\n", trk_scale);
     }
 
-    // ---------------- External calibration ----------------
-    od.calibrate_externals();
-    for (auto& r : list) {
-        double f = ext_scale(r.O, r.D);
-        if (f != 1.0) r.vehTrips *= f;
+    // ---------------- External-station target calibration ----------------
+    // Scale all OD trips serving each external zone so the zone's modeled volume
+    // hits the target (count or growth-rate) from ldt_external_targets.csv.
+    // Replaces the legacy hardcoded I95/I75/I10 scale constants.
+    const std::string ext_file = s.scen(s.ldt_external_targets, "ldt_external_targets.csv");
+    if (s.apply_external_targets && file_exists(ext_file)) {
+        auto targets = load_ext_targets(ext_file);
+        // Optional base-count override (a plugin-config base-year count table).
+        if (!s.external_base_counts.empty() && file_exists(s.external_base_counts)) {
+            CsvTable b = load_csv(s.external_base_counts);
+            int bz = b.require("ext_zone_id", s.external_base_counts);
+            int bc = -1;
+            for (int i = 0; i < (int)b.header.names.size(); ++i)
+                if (b.header.names[i].rfind("base_count", 0) == 0) { bc = i; break; }
+            if (bc >= 0)
+                for (size_t r = 0; r < b.size(); ++r) {
+                    auto it = targets.find(b.ll(r, bz));
+                    if (it != targets.end()) { it->second.base_count = b.num(r, bc); it->second.has_base = true; }
+                }
+        }
+        // Modeled volume per external zone, from the unscaled trip list.
+        std::unordered_map<long long, double> modeled;
+        for (const auto& r : list) {
+            if (targets.count(r.O)) modeled[r.O] += r.vehTrips;
+            if (r.D != r.O && targets.count(r.D)) modeled[r.D] += r.vehTrips;
+        }
+        // Per-zone scale = target / modeled.
+        std::unordered_map<long long, double> scale;
+        for (const auto& kv : targets) {
+            double tgt = resolve_target(kv.second, s.year, s.external_base_year);
+            double mod = modeled.count(kv.first) ? modeled[kv.first] : 0.0;
+            double sc = mod > 0 ? tgt / mod : 1.0;
+            scale[kv.first] = sc;
+            std::printf("[eltod] external %lld: target=%.0f modeled=%.0f scale=%.4f%s\n",
+                        kv.first, tgt, mod, sc, mod > 0 ? "" : "  (no modeled trips!)");
+        }
+        ScaleFn factor = [scale](long long o, long long d) {
+            double f = 1.0;
+            auto io = scale.find(o); if (io != scale.end()) f *= io->second;
+            if (d != o) { auto id = scale.find(d); if (id != scale.end()) f *= id->second; }
+            return f;
+        };
+        for (auto& r : list) { double f = factor(r.O, r.D); if (f != 1.0) r.vehTrips *= f; }
+        od.apply_scale(factor);
+    } else {
+        std::printf("[eltod] external target scaling skipped (%s)\n",
+                    s.apply_external_targets ? ("not found: " + ext_file).c_str() : "disabled");
     }
 
     // ---------------- Merge SDT household income onto resident rows ----------------

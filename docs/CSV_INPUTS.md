@@ -122,6 +122,24 @@ three vehicle-class daily volumes).
 Used to attach income to the resident trip list. Required: `household_id,
 HHINCADJ`.
 
+### External-station targets — `ldt_external_targets.csv` (written by the GUI)
+Drives external-station calibration: OD trips serving each external zone are
+scaled so the zone's modeled volume hits a target (`scale = target / modeled`).
+
+| column | type | meaning |
+|--------|------|---------|
+| `interstate` | str | label (e.g. `I-75`); informational |
+| `ext_zone_id` | int | external-station TAZ — **must match `ext_station_i10/i75/i95` in the control file** |
+| `base_count_<yy>` | num | base-year count (matched by `base_count` prefix); used for growth-rate specs |
+| `future_target_or_growth` | str | an absolute target count (e.g. `60000`) **or** a growth rate (e.g. `1.2%`) |
+
+A growth-rate spec resolves to `base_count * (1 + rate/100 * (year - external_base_year))`
+(linear annual growth). An absolute number is used as the target directly.
+
+### Optional base-count override — `external_base_counts.csv`
+If `external_base_counts` is set in the control file, it overrides the per-zone
+base counts for growth-rate specs. Columns: `ext_zone_id`, `base_count_<yy>`.
+
 ---
 
 ## 3. Outputs
