@@ -36,8 +36,14 @@ os_ldt_tours  = C:/TSM_NextGen_v6/Base/TSMv6_2024/OS_LD_tour_out.csv
 # sdt_res_trips = (default: scenario_dir/trips_<feedback_loop>.csv)
 # sdt_vis_trips = (default: scenario_dir/visitorTrips.csv)
 
-# --- output (default: scenario_dir/ELTOD_tt_List_hourly.csv.gz) ---
-# trip_table_out = C:/TSM_NextGen_v6/Base/TSMv6_2024/ELTOD_tt_List_hourly.csv.gz
+# --- outputs ---
+# trip_table_out   = the gz Hydra trip list (default scenario_dir/ELTOD_tt_List_hourly.csv.gz)
+# hourly_table_out = the hourly OD trip table CSV, wide by market w/ STARTTIME HH:00,
+#                    same as the original R 3_get_ELTOD output
+#                    (default scenario_dir/ELTOD_tt_HourClock.csv)
+# trip_table_out   = C:/TSM_NextGen_v6/Base/TSMv6_2024/ELTOD_tt_List_hourly.csv.gz
+# hourly_table_out = C:/TSM_NextGen_v6/Base/TSMv6_2024/ELTOD_tt_HourClock.csv
+write_hourly_table = true
 
 # --- external-station target calibration ---
 # GUI-produced file: interstate,ext_zone_id,base_count_<yy>,future_target_or_growth

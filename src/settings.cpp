@@ -93,6 +93,8 @@ Settings Settings::load(const std::string& control_file) {
     S("sdt_res_trips", s.sdt_res_trips);
     S("sdt_vis_trips", s.sdt_vis_trips);
     S("trip_table_out", s.trip_table_out);
+    S("hourly_table_out", s.hourly_table_out);
+    B("write_hourly_table", s.write_hourly_table);
 
     S("ldt_external_targets", s.ldt_external_targets);
     S("external_base_counts", s.external_base_counts);

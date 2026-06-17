@@ -5,11 +5,14 @@ agentPlans is the C++ port of the two QGIS-plugin trip-list R scripts:
 - `2_Create_LDT_TripTable_GA_AL_template.R`  → **stage `ldt`**
 - `3_get_ELTOD_TripTable_template.R`         → **stage `eltod`**
 
-The C++ port reads **plain CSV only**. Every Excel (`.xlsx`) lookup the R
-scripts read with `openxlsx::read.xlsx()` must be exported to CSV once. Column
-**names are matched by header** (order does not matter, extra columns are
-ignored), so the simplest path is *Save As → CSV* of each sheet, keeping the
-original header text shown below.
+The C++ port reads **CSV** (Excel `.xlsx` lookups must be exported to CSV once;
+column **names are matched by header**, order-independent, extra columns ignored,
+so *Save As → CSV* of each sheet keeping the original header text works).
+
+**Any input may be gzipped.** Every reader auto-detects gzip by magic bytes
+(via the vendored miniz decoder), so each file can be plain `.csv` or `.csv.gz`
+interchangeably — no setting needed. (e.g. a large `truck_odme` or SDT trip list
+can be supplied as `.csv.gz`.)
 
 ---
 
@@ -149,9 +152,9 @@ base counts for growth-rate specs. Columns: `ext_zone_id`, `base_count_<yy>`.
 | `LD_tour_out_processed.csv`               | csv    | stage `ldt` consolidated tour list |
 | `LD_tour_out_processed_ToD_Trips.csv`     | csv    | stage `ldt` trips w/ direction + ToD (input to stage `eltod`) |
 | `ELTOD_LDT_tt.csv`                         | csv    | optional LDT-only ELToD OD table |
-| `ELTOD_tt_HourClock.csv`                   | csv    | combined ELToD OD trip table (wide, by market) |
-| `ELTOD_SDT_Res_hourly.csv.gz`             | gz csv | SDT resident purpose×VOT OD table |
-| **`ELTOD_tt_List_hourly.csv.gz`**         | **gz csv** | **the Hydra/AgentFlow trip list — primary deliverable** |
+| `ELTOD_tt_HourClock.csv` (`hourly_table_out`) | csv | **hourly OD trip table** (wide by market/VOT, `STARTTIME` HH:00) — matches the original R `3_get_ELTOD` output; always aggregated to the clock hour. Toggle with `write_hourly_table`. |
+| `ELTOD_SDT_Res_hourly.csv`                | csv    | SDT resident purpose×VOT OD table |
+| **`ELTOD_tt_List_hourly.csv.gz`** (`trip_table_out`) | **gz csv** | **the Hydra/AgentFlow trip list — primary deliverable** |
 
 The trip-list gz uses the exact Hydra schema (14 columns, in this order):
 

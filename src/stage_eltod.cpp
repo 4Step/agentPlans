@@ -398,15 +398,20 @@ void run_stage_eltod(const Settings& s, const Lookups& lk, Rng& rng,
     }
 
     // ---------------- Outputs ----------------
-    const std::string out_od = s.scen("", "ELTOD_tt_HourClock.csv");
-    od.write_csv(out_od, s.write_HourClock_format);
-    std::printf("[eltod] wrote OD table -> %s\n", out_od.c_str());
+    // Hourly OD trip table (wide by market/VOT, STARTTIME HH:00) — matches the
+    // original R 3_get_ELTOD output. Always aggregated to the clock hour,
+    // independent of the trip-list output_resolution.
+    if (s.write_hourly_table) {
+        const std::string out_od = s.scen(s.hourly_table_out, "ELTOD_tt_HourClock.csv");
+        od.write_csv(out_od, s.write_HourClock_format);
+        std::printf("[eltod] wrote hourly OD trip table -> %s\n", out_od.c_str());
+    }
 
     const std::string out_sdt = s.scen("", "ELTOD_SDT_Res_hourly.csv");
     sdt_res_od.write_csv(out_sdt, false);
     std::printf("[eltod] wrote SDT resident OD -> %s\n", out_sdt.c_str());
 
-    // Primary deliverable: Hydra-schema gzipped trip list.
+    // Hydra-schema gzipped trip list.
     const std::string out_list = s.scen(s.trip_table_out, "ELTOD_tt_List_hourly.csv.gz");
     GzWriter gz(out_list);
     if (!gz.good()) throw std::runtime_error("cannot open output: " + out_list);

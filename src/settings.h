@@ -63,7 +63,11 @@ struct Settings {
     long long ext_station_i95 = 11560;
 
     // --- outputs (override; else derived from scenario_dir) ---
-    std::string trip_table_out;       // ELTOD_tt_List_hourly.csv.gz (Hydra list)
+    std::string trip_table_out;       // gz Hydra trip list (ELTOD_tt_List_hourly.csv.gz)
+    std::string hourly_table_out;     // hourly OD trip table CSV (ELTOD_tt_HourClock.csv),
+                                      // wide by market/VOT with STARTTIME HH:00 -- matches
+                                      // the original R 3_get_ELTOD output.
+    bool write_hourly_table = true;   // also emit the hourly OD trip table
 
     // --- toggles: stage ldt (script 2) ---
     bool apply_originState_based_externals = true;
