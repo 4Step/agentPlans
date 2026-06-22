@@ -10,7 +10,7 @@ C++17 port of the two TSM "trip-list" R scripts from the QGIS `tsm_panel` plugin
 Canonical R source:
 `C:/Users/<user>/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/tsm_panel/Rscripts/`
 
-The two scripts build the long-distance (rJourney) trip list and then combine it
+The two scripts build the long-distance (LDT) trip list and then combine it
 with the SDT resident/visitor trip lists and the truck ODME table into the
 **ELToD trip list** that Hydra (AgentFlow DTA) consumes. agentPlans runs the
 **full pipeline from a single control file** and writes the trip list as a
@@ -74,7 +74,7 @@ follows `output_resolution` (30-min → :00/:30, 15-min → :00/:15/:30/:45).
   |---|---|---|
   | `output_resolution` | trip-list `depart_time` bin width | `15` or `30` (minutes) |
   | `sdt_input_resolution` | SDT trip-list native bin | `15` or `30` |
-  | `ldt_input_resolution` | rJourney LDT native bin | `daily` |
+  | `ldt_input_resolution` | LDT native bin | `daily` |
   | `truck_input_resolution` | truck ODME native bin | `daily` |
 
   The trip list's `depart_time` is an **HH:MM:SS** clock at the start of the

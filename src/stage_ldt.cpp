@@ -11,9 +11,9 @@ namespace ap {
 
 namespace {
 
-// One rJourney tour with the fields stage A reads and the fields it derives.
+// One LDT tour with the fields stage A reads and the fields it derives.
 struct Tour {
-    // rJourney inputs
+    // LDT inputs
     long long hhId = 0;
     int trPurpose = 0;
     double trPartySize = 1;
@@ -80,7 +80,7 @@ std::vector<Tour> read_ldt_tours(const Settings& s) {
             tours.push_back(std::move(t));
         }
     }
-    std::printf("[ldt] read %zu rJourney tours\n", tours.size());
+    std::printf("[ldt] read %zu LDT tours\n", tours.size());
     return tours;
 }
 

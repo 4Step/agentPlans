@@ -111,8 +111,8 @@ expansionFactor, destinationPurpose, originPurpose, hh_id, person_id, tour_id, t
 Required columns: `originTaz, destinationTaz, period, valueOfTime, tripMode,
 expansionFactor, destinationPurpose, originPurpose, tour_id, trip_id`.
 
-### `<scenario>/FL_LD_tour_out.csv` + `OS_LD_tour_out.csv`  (rJourney LDT tours)
-rJourney tour output. Key columns used: `hhId, trNo, trMonth, trPurpose,
+### `<scenario>/FL_LD_tour_out.csv` + `OS_LD_tour_out.csv`  (LDT tours)
+LDT tour output. Key columns used: `hhId, trNo, trMonth, trPurpose,
 trPartySize, trNightsAway, trMode, trOState, trDState, trOZone, trDZone,
 trAutoDistance, trTravelTime, trTravelCost, trExpFactor, trORegion, trDRegion,
 trVOT, hhHeadAge, hhIncome`.

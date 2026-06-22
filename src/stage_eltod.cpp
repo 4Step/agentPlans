@@ -70,10 +70,22 @@ struct ODTable {
     }
 };
 
-double occupancy_for(int tripMode) {
-    if (tripMode == 3 || tripMode == 4) return 2.0;
-    if (tripMode == 5 || tripMode == 6) return 3.2;
-    return 1.0;
+// SDT writes resident and visitor trip modes with DIFFERENT 1-based codings
+// (see SDTModel OutputWriter.cpp). RESIDENT uses the Java-UEC map
+//   1=DA_FREE 2=S2GP 3=S3GP 4=DA_PAY 5=S2PAY 6=S3PAY  -> 1,4=DA 2,5=SR2 3,6=SR3
+// VISITOR uses sequential cpp+1
+//   1=DA_FREE 2=DA_PAY 3=S2GP 4=S2PAY 5=S3GP 6=S3PAY   -> 1,2=DA 3,4=SR2 5,6=SR3
+// Applying the visitor coding to resident trips mis-assigns occupancy and inflates
+// vehicle trips, so occupancy must follow the file's own coding.
+double occupancy_for(int tripMode, bool resident) {
+    if (resident) {
+        if (tripMode == 2 || tripMode == 5) return 2.0;   // SR2
+        if (tripMode == 3 || tripMode == 6) return 3.2;   // SR3
+        return 1.0;                                        // DA (1,4)
+    }
+    if (tripMode == 3 || tripMode == 4) return 2.0;        // SR2
+    if (tripMode == 5 || tripMode == 6) return 3.2;        // SR3
+    return 1.0;                                            // DA (1,2)
 }
 
 std::string vot_class(double v, double lo, double hi, const char* base) {
@@ -179,13 +191,29 @@ void run_stage_eltod(const Settings& s, const Lookups& lk, Rng& rng,
         if (!rd.good()) throw std::runtime_error("cannot open SDT trips: " + file);
         std::string_view line; rd.next_line(line);
         CsvHeader h; h.parse(line);
-        int cO = h.require("originTaz", file), cD = h.require("destinationTaz", file);
-        int cPeriod = h.require("period", file), cVot = h.require("valueOfTime", file);
-        int cMode = h.require("tripMode", file), cExp = h.require("expansionFactor", file);
-        int cDP = h.require("destinationPurpose", file), cOP = h.require("originPurpose", file);
-        int cHh = h.col("hh_id"), cPer = h.col("person_id"), cTour = h.col("tour_id"), cTrip = h.col("trip_id");
+        // SDT C++ writes resident trips in UPPER_SNAKE (ORIG_TAZ, MODE, TRIP_WEIGHT,
+        // single PURPOSE = destination purpose) and visitor trips in the camelCase
+        // schema. Accept either spelling so one reader handles both files.
+        auto req2 = [&](const char* a, const char* b) -> int {
+            int c = h.col(a); if (c < 0) c = h.col(b);
+            if (c < 0) throw std::runtime_error(file + ": missing column '" + a + "'/'" + b + "'");
+            return c;
+        };
+        int cO = req2("originTaz", "ORIG_TAZ"), cD = req2("destinationTaz", "DEST_TAZ");
+        int cPeriod = req2("period", "DEPART_PERIOD"), cVot = req2("valueOfTime", "VALUE_OF_TIME");
+        int cMode = req2("tripMode", "MODE"), cExp = req2("expansionFactor", "TRIP_WEIGHT");
+        // visitor: separate origin/dest purpose; resident: single PURPOSE = dest
+        // purpose (purpose_res uses dp when >=0, so originPurpose may be absent).
+        int cDP = h.col("destinationPurpose"); if (cDP < 0) cDP = h.col("PURPOSE");
+        if (cDP < 0) throw std::runtime_error(file + ": missing column 'destinationPurpose'/'PURPOSE'");
+        int cOP = h.col("originPurpose");
+        int cHh = h.col("hh_id");   if (cHh < 0)   cHh = h.col("HHID");
+        int cPer = h.col("person_id"); if (cPer < 0) cPer = h.col("PERID");
+        int cTour = h.col("tour_id");  if (cTour < 0) cTour = h.col("TOURID");
+        int cTrip = h.col("trip_id");  if (cTrip < 0) cTrip = h.col("TRIPID");
         std::vector<std::string_view> f;
         long long vis_counter = 0;
+        double veh_total = 0;       // vehicle-trips emitted from this file (for QA count)
         const double lo = s.vot_sdt_low, hi = s.vot_sdt_high;
         while (rd.next_line(line)) {
             if (line.empty()) continue;
@@ -198,8 +226,9 @@ void run_stage_eltod(const Settings& s, const Lookups& lk, Rng& rng,
             std::string purpose = resident ? purpose_res(dp, op) : purpose_vis(dp, op);
             std::string seg = resident ? vot_class(vt, lo, hi, "SDT_Res")
                                        : vot_class(vt, lo, hi, "SDT_Vis");
-            double occ = occupancy_for(mode);
+            double occ = occupancy_for(mode, resident);
             double veh = to_double(G(cExp)) / occ;
+            veh_total += veh;
             int period = (int)to_ll(G(cPeriod));
             int s15 = recode_seg(period);
             int hr = hour_from_seg(s15);
@@ -225,7 +254,8 @@ void run_stage_eltod(const Settings& s, const Lookups& lk, Rng& rng,
             }
             list.push_back(std::move(r));
         }
-        std::printf("[eltod] processed SDT %s\n", resident ? "residents" : "visitors");
+        std::printf("[eltod] processed SDT %s: %.0f vehicle-trips\n",
+                    resident ? "residents" : "visitors", veh_total);
     };
 
     process_sdt(vis_file, false);

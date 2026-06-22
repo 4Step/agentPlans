@@ -89,10 +89,27 @@ void Lookups::load_tod(const Settings& s) {
 
 void Lookups::load_skim(const Settings& s) {
     if (skim_loaded || s.distance_skim.empty()) return;
-    CsvTable t = load_csv(s.distance_skim);
+    // The distance skim is OPTIONAL: it only drives distance-based segmentation
+    // (air-tour access/egress, SDT >50mi). agentPlans has no OMX reader yet (a CSV
+    // is expected; see the SkimConverter omx->csv reverse task), so a missing file
+    // must NOT abort the run -- warn and continue with no skim (dist() returns -1,
+    // so the distance thresholds simply never trigger).
+    CsvTable t;
+    try {
+        t = load_csv(s.distance_skim);
+    } catch (const std::exception& e) {
+        std::printf("[lookups] WARNING: distance skim unavailable (%s); "
+                    "distance-based segmentation skipped\n", e.what());
+        skim_loaded = true;   // don't retry
+        return;
+    }
     // R reads the first three columns positionally: O, D, distance.
-    if (t.header.names.size() < 3)
-        throw std::runtime_error(s.distance_skim + ": expected >=3 columns");
+    if (t.header.names.size() < 3) {
+        std::printf("[lookups] WARNING: %s has <3 columns; distance skim skipped\n",
+                    s.distance_skim.c_str());
+        skim_loaded = true;
+        return;
+    }
     for (size_t r = 0; r < t.size(); ++r) {
         long long o = to_ll(t.at(r, 0));
         long long d = to_ll(t.at(r, 1));
